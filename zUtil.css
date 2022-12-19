@@ -1,0 +1,170 @@
+#zutil {
+    position: relative;
+}
+
+#zutil-console {
+    height: 400px;
+    width: 100%;
+    overflow: scroll;
+    border: 2px solid silver;
+    border-radius: 7px;
+    position: relative;
+}
+
+.zutil-console-collapsed {
+    height: 1em !important;
+}
+
+
+.zutil-console-collapse {
+    background-color: blue;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1em;
+    height: 1em
+}
+
+#zutil textarea {
+    width: 80%;
+    height: 3em;
+    vertical-align: middle;
+}
+
+
+.zutil-normal-log {
+    white-space: pre-wrap;
+    color: #111;
+}
+
+.zutil-expand {
+    border-left: 2px silver dashed;
+    padding: 0 2em;
+}
+
+.zutil-object-string {
+    color: #ba2121;
+    white-space: nowrap;
+}
+
+.zutil-object-string span,
+.zutil-object-string a {
+    color: #181a1c;
+    background-color: silver;
+    border-radius: 3px;
+}
+
+.zutil-object-number {
+    color: blue;
+}
+
+.zutil-object-function-code {
+    position: absolute;
+    z-index: 10;
+    border-radius: 2px;
+    background-color: #DDD6;
+    left: 3em;
+    white-space: pre
+}
+
+.zutil-object-function-block {
+    color: #444;
+    white-space: pre;
+    display: block;
+    margin-left: 12px;
+}
+
+#zutil-console .zutil-console-line {
+    padding-left: 1em;
+    overflow-x: auto;
+}
+
+.zutil-console-line.in {
+    border-bottom: 3px solid green
+}
+
+.zutil-console-line.out {
+    border-bottom: 3px solid blue
+}
+
+.zutil-console-line.err {
+    border-bottom: 3px solid red
+}
+
+/*.zutil-console-line.preview {border-bottom: 3px solid grey;position: absolute;bottom: 0;	width: 100%;opacity: 0.6;}*/
+
+.zutil-node.ele {
+    color: grey;
+}
+
+.zutil-node.select {
+    background-color: aliceblue;
+}
+
+.zutil-node.ele .tag-name {
+    color: purple;
+}
+
+.zutil-node.ele .attr-name {
+    color: #A93;
+}
+
+.zutil-node.ele .attr-value {
+    color: #03A;
+}
+
+.zutil-node.ele .node-content.expanded {
+    display: block;
+    border-left: 1.5px silver dashed;
+    padding-left: 2em;
+}
+
+.zutil-node.ele:not(.expanded) .isz0 {
+    float: right;
+}
+
+.zutil-node .isz0 {
+    color: grey;
+    font-style: italic;
+}
+
+
+.zutil-node.text {
+    color: #111;
+    white-space: pre-wrap;
+}
+
+.zutil-node.doctype {
+    color: silver;
+}
+
+.zutil-node.comment {
+    color: forestgreen;
+    white-space: pre-wrap;
+}
+
+.zutil-triangle {
+    border-left: 0.7em solid grey;
+    border-top: 0.35em solid transparent;
+    border-bottom: 0.35em solid transparent;
+    width: 0;
+    height: 0;
+
+}
+
+.zutil-console-line .zutil-triangle {
+    float: left;
+    margin-left: -0.85em;
+    margin-top: 0.4em
+}
+
+.zutil-triangle.zutil-back {
+    position: absolute;
+    font-size: 3em;
+    right: 0;
+    bottom: 0
+}
+
+.zutil-property-del {
+    float: right;
+}
