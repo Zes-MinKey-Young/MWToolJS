@@ -1,4 +1,12 @@
 // @ts-check
+/*
+<pre>
+This script is designed for Chinese wiki users.
+本脚本专为中文用户设计。它的作用是，在语言为zh，含有多种变体的wiki上，
+将链往锚点的链接根据正确链接、UTF-8转义链接和无锚点三种状态
+高亮为绿、黄、红色，并修正UTF-8转义锚点链接。
+</pre>
+*/
 /**
  * @typedef {{
  *   pageName: string;
