@@ -16,14 +16,17 @@ const watchDefault = mw.user.options.get("watchdefault") === 1;
 class WikiWindow {
 	/**
 	 * @param {string} href
-	 * @param {JQuery<HTMLElement>} $content #mw-content-text的元素
 	 * @param {WikiWindows} windows 
 	 */
-	constructor(href, $content, windows) {
+	constructor(href, windows) {
 		var _href, url, deferred;
 		var windowTypes = ["edit", "view", "diff"];
 
 
+		deferred = $.Deferred();
+		this.promise = deferred.promise();
+		this.windows = windows;
+		this.loadUI();
 		for (let windowType of windowTypes) {
 			if (href.startsWith("/" + windowType)) {
 				try {
@@ -45,11 +48,6 @@ class WikiWindow {
 			_href = base + "/wiki/" + href;
 		}
 		url = new URL(_href);
-		deferred = $.Deferred();
-		this.promise = deferred.promise();
-		this.windows = windows;
-		this.$mwContent = $content;
-		this.loadUI($content);
 		if (url.searchParams.get("diff")) {
 			return this.diff(url, deferred);
 		}
@@ -76,12 +74,12 @@ class WikiWindow {
 		}
 	}
 	/**
-	 * @param {JQuery<HTMLElement>} $content
+	 * 
 	 */
-	loadUI($content) {
+	loadUI() {
 		this.$element = $("<div/>")
 			.addClass("wikiwindow")
-			.appendTo($content)
+			.appendTo(this.windows.$element)
 			.hide();
 		this.$topBar = $("<div/>")
 			.addClass("wikiwindow-bar")
@@ -109,10 +107,13 @@ class WikiWindow {
 		} else if (url.pathname.startsWith("/wiki/")) {
 			title = url.pathname.slice(6);
 		} else {
-			throw Error("非法参数");
+			throw new Error("非法参数");
+		}
+		if (!title) {
+			throw new Error("无标题")
 		}
 		if (title.startsWith("Special:")) {
-			throw Error("不可编辑特殊页面");
+			throw new Error("不可编辑特殊页面");
 		}
 		return decodeURI(title);
 	}
@@ -148,11 +149,12 @@ class WikiWindow {
 	 * @param {JQuery.Deferred} deferred
 	 * @param {Array<any>} p
 	 */
-	ok(title, deferred, p) {
+	accomplish(title, deferred, p) {
 		this.state = "ready";
 		deferred.resolveWith(this, p);
 		this.$element.fadeIn();
 		this.title = title;
+		this.windows.empty = false;
 		if (title.length <= 15) {
 			this.$title.attr("title", title).html(title);
 		} else {
@@ -164,7 +166,6 @@ class WikiWindow {
 	 * @param {JQuery.Deferred<any, any, any>} deferred
 	 */
 	view(url, deferred) {
-		/* Window (URL url, jQuery.Deferred deferred)*/
 		this.type = "view";
 		var href = url.href;
 		this.iframe = document.createElement("iframe")
@@ -178,7 +179,7 @@ class WikiWindow {
 		});
 		this.$iframe.on("load", (ev) => {
 			var title = ev.currentTarget.contentDocument.getElementsByTagName("title")[0].innerHTML;
-			this.ok(title, deferred, []);
+			this.accomplish(title, deferred, []);
 		});
 		return this;
 	}
@@ -276,6 +277,7 @@ class WikiWindow {
 					minor: checkbox1.val(),
 					watch: checkbox2.val()
 				}).done(res => {
+					console.log(res);
 					mw.notify("成功！");
 					this.windows.close(this.windows.shownWindows.indexOf(this));
 				});
@@ -286,7 +288,7 @@ class WikiWindow {
 				.append(layout2.$element)
 				.append(button.$element);
 			$textarea.val(content);
-			this.ok("编辑" + title, deferred, [result]);
+			this.accomplish("编辑" + title, deferred, [result]);
 		});
 		return this;
 	}
@@ -328,7 +330,7 @@ class WikiWindow {
 					.append(result.parse.text);
 				WikiWindow.fixInterfaceAnchors($interface);
 			});
-			this.ok("比较" + fromrev + "与" + torev + "的差异", deferred, [result]);
+			this.accomplish("比较" + fromrev + "与" + torev + "的差异", deferred, [result]);
 		});
 		return this;
 	}
@@ -358,22 +360,35 @@ class WikiWindow {
 			var span = new zui.Span();
 			/**
 			 * 鬼知道我以前为什么发电想到拿函数来弄的
-			 * @type {(($e: JQuery) => JQuery)[]}
-			 */
+			 *  type {(($e: JQuery) => JQuery)[]}
 			var lists = [];
+			 */
 			var deltas = [];
-			for (let si in revisions) {
-				let i = parseInt(si)
-				let revision = revisions[i]
+			for (let stringIndex in revisions) {
+				let index = parseInt(stringIndex)
+				let revision = revisions[index]
+				deltas.push(revision.size - (revisions[index + 1] ? revisions[index + 1].size : 0))
+			}
+			var lgDeltas = [];
+			for (let item of deltas) {
+				lgDeltas.push(Math.log10(Math.abs(item)))
+			}
+			// 最大的变化量，以它为参照
+			var standardDelta = Math.max.apply(Math, lgDeltas);
 
-				/**
+			for (let stringIndex in revisions) {
+				let index = parseInt(stringIndex)
+				let revision = revisions[index]
+
+				/*
 				 * @param {JQuery<HTMLElement>} $e
-				 */
+				 *
 				function add($e) {
 					var $td;
 					$row.append($td = $("<td>").append($e));
 					return $td;
 				}
+				*/
 				let $row = $("<tr/>").appendTo($tbody);
 				let $revLink = $("<a/>");
 				let $usrLink = $("<a/>");
@@ -382,11 +397,9 @@ class WikiWindow {
 				$revLink.attr("href", encodeURI(`/w/index.php?title=${title}&oldid=${revision.revid}`));
 				$usrLink.html(revision.user);
 				$usrLink.attr("href", revision.anon ? `/wiki/Special:Contributions/${revision.user}` : `/wiki/User:${revision.user}`);
-				add(span.newPlace(revision.revid));
-				add($revLink);
-				add($usrLink);
 				let $delta = $("<span/>");
-				let delta = revision.size - (revisions[i + 1] ? revisions[i + 1].size : 0);
+				let delta = deltas[index]
+				let lgDelta = lgDeltas[index]
 				if (delta > 0) {
 					$delta.html("+" + delta);
 					$delta.css("color", "green");
@@ -397,28 +410,9 @@ class WikiWindow {
 					$delta.html(delta + "");
 					$delta.css("color", "red");
 				}
-				add($delta).addClass("wikiwindows-history-delta");
-				add($("<span/>").css("fontWeight", "bold").html(revision.minor ? "小" : ""));
-				add($("<span/>").css("color", "grey").html(revision.comment)).addClass("comment");
-				lists.push(add);
-				deltas.push(delta);
-			}
-			var lgDeltas = [];
-			for (let item of deltas) {
-				lgDeltas.push(Math.log10(Math.abs(item)))
-			}
-			// 最大的变化量，以它为参照
-			var standardDelta = Math.max.apply(Math, lgDeltas);
-			for (let i = 0; i < deltas.length; i++) {
-				let delta = deltas[i]
-				let lgDelta = lgDeltas[i]
-				if (delta === 0) {
-					continue;
-				}
-				let rowAdd = lists[i];
 				let $rect = $("<div/>")
 					.addClass("wikiwindow-history-delta-rect")
-					.attr("title", `${delta} bytes (10^${lgDelta})`);
+					.attr("title", `${delta} bytes (10^${("" + lgDelta.toString()).slice(0, -5)})`);
 				let width = 40 * (lgDelta / standardDelta) + "%";
 				$rect.css("width", width);
 				if (delta > 0) {
@@ -426,6 +420,34 @@ class WikiWindow {
 				} else {
 					$rect.addClass("wikiwindow-history-delta-rect-negative");
 				}
+				$row.append(
+					$("<td/>").append(span.newPlace(revision.revid)),
+					$("<td/>").append($revLink),
+					$("<td/>").append($usrLink),
+					$("<td/>").append($delta)
+					          .addClass("wikiwindows-history-delta"),
+					$("<td/>").append(
+						$("<span/>")
+							.css("fontWeight", "bold")
+							.html(revision.minor ? "小" : "")
+						),
+					$("<td/>").append(
+						$("<span/>")
+							.css("color", "grey")
+							.html(revision.comment)
+						)
+						.addClass("comment"),
+					$rect
+				);
+				deltas.push(delta);
+			}
+			for (let i = 0; i < deltas.length; i++) {
+				let delta = deltas[i]
+				let lgDelta = lgDeltas[i]
+				if (delta === 0) {
+					continue;
+				}
+				let rowAdd = lists[i];
 				rowAdd($rect);
 			}
 
@@ -438,7 +460,7 @@ class WikiWindow {
 				this.windows.open(`/w/index.php?title=${title}&oldid=${oldid}&diff=${diff}`);
 			});
 			button.$element.prependTo($interface);
-			this.ok("查看历史：" + title, deferred, [revisions]);
+			this.accomplish("查看历史：" + title, deferred, [revisions]);
 		});
 		return this;
 	}
@@ -467,7 +489,7 @@ class WikiWindow {
 		layout1.$element.appendTo($content)
 		layout2.$element.appendTo($content)
 		layout3.$element.appendTo($content)
-		this.ok("重命名" + title, deferred, [])
+		this.accomplish("重命名" + title, deferred, [])
 		button.click(() => {
 			console.log({
 				action: "move",
@@ -710,7 +732,7 @@ class WikiWindows {
 		this.state = WikiWindows.NORMAL;
 	}
 	/**
-	 * @param {string | HTMLElement | JQuery<HTMLElement>} $link
+	 * @param {string | HTMLElement | JQuery<HTMLElement>} $link 一个字符串或者（Jquery）元素指示地址
 	 * @returns {undefined|WikiWindow}
 	 */
 	open($link) {
@@ -839,7 +861,7 @@ if (window.scriptLoader) {
 	var windows = new WikiWindows();
 	// @ts-ignore
 	window.windows = windows;
-	var li = mw.util.addPortletLink("p-views", "javascript:void(0)", "加载器", "scriptloader-show");
+	var li = mw.util.addPortletLink("p-views", "", "加载器", "scriptloader-show");
 	$(li).find("a").on("click", () => windows.showLoader());
 	window.scriptLoader.send("wikiwindows", 1);
 } else {
