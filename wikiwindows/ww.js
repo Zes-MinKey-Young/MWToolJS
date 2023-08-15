@@ -64,13 +64,12 @@ class WikiWindow {
 	}
 	/**
 	 * @param {JQuery<HTMLElement> | HTMLElement} link
-	 * @param {JQuery<HTMLElement>} $content
 	 * @param {WikiWindows} windows
 	 */
-	static fromLink(link, $content, windows) {
+	static fromLink(link, windows) {
 		let href = $(link).attr("href")
 		if (href) {
-			return new WikiWindow(href, $content, windows)
+			return new WikiWindow(href, windows)
 		}
 	}
 	/**
@@ -441,15 +440,6 @@ class WikiWindow {
 				);
 				deltas.push(delta);
 			}
-			for (let i = 0; i < deltas.length; i++) {
-				let delta = deltas[i]
-				let lgDelta = lgDeltas[i]
-				if (delta === 0) {
-					continue;
-				}
-				let rowAdd = lists[i];
-				rowAdd($rect);
-			}
 
 
 			var button = new zui.Button({
@@ -738,9 +728,9 @@ class WikiWindows {
 	open($link) {
 		var win
 		if (typeof $link !== "string") {
-			win = WikiWindow.fromLink($link, $("#mw-content-text"), this)
+			win = WikiWindow.fromLink($link, this)
 		} else {
-			win = new WikiWindow($link, $("#mw-content-text"), this)
+			win = new WikiWindow($link, this)
 		}
 		if (!win) {
 			return
